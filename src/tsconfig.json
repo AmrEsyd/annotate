@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2018",
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitThis": false,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react",
+    "baseUrl": ".",
+    "paths": {
+      "fabric-pure-browser": ["../node_modules/@types/fabric/index"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

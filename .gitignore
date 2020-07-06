@@ -1,0 +1,5 @@
+/node_modules
+/.airtableblocksrc.json
+/build
+/package-lock.json
+/.block
