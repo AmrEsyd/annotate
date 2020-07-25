@@ -1,7 +1,13 @@
 import { IObjectOptions } from 'fabric/fabric-impl'
 import React from 'react'
 
-import { ColorPalette, colors, colorUtils, Label } from '@airtable/blocks/ui'
+import {
+  Box,
+  ColorPalette,
+  colors,
+  colorUtils,
+  Label,
+} from '@airtable/blocks/ui'
 import is from '@sindresorhus/is'
 
 import { PopoverButton } from '../../components'
@@ -58,34 +64,37 @@ export const Color: React.FC<ColorSettingProps> = (props) => {
       styleType="white"
       eventType="click"
       style={{
-        border: 'solid 2px',
         backgroundColor: is.string(fillColorHex) ? fillColorHex : undefined,
-        borderColor: is.string(strokeColorHex) ? strokeColorHex : undefined,
+        boxShadow: is.string(strokeColorHex)
+          ? `${strokeColorHex} 0px 0px 0px 2px inset`
+          : undefined,
         color:
           fillColor && colorUtils.shouldUseLightTextOnColor(fillColor)
             ? '#fff'
             : '#222',
       }}
     >
-      <Label>Fill</Label>
-      <ColorPalette
-        color={fillColor}
-        onChange={(newColor) =>
-          handleFillColor(colorUtils.getHexForColor(newColor))
-        }
-        allowedColors={allowedColors}
-        width="160px"
-      />
+      <Box padding={1}>
+        <Label>Fill</Label>
+        <ColorPalette
+          color={fillColor}
+          onChange={(newColor) =>
+            handleFillColor(colorUtils.getHexForColor(newColor))
+          }
+          allowedColors={allowedColors}
+          width="160px"
+        />
 
-      <Label>Stroke</Label>
-      <ColorPalette
-        color={strokeColor}
-        onChange={(newColor) =>
-          handleStrokeColor(colorUtils.getHexForColor(newColor))
-        }
-        allowedColors={allowedColors}
-        width="160px"
-      />
+        <Label marginTop={2}>Stroke</Label>
+        <ColorPalette
+          color={strokeColor}
+          onChange={(newColor) =>
+            handleStrokeColor(colorUtils.getHexForColor(newColor))
+          }
+          allowedColors={allowedColors}
+          width="160px"
+        />
+      </Box>
     </PopoverButton>
   )
 }

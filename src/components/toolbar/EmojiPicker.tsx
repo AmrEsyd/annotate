@@ -30,6 +30,7 @@ export const EmojiPicker: React.FC<{
       eventType="click"
     >
       <NimblePicker
+        autoFocus={true}
         theme="light"
         sheetSize={16}
         showPreview={false}

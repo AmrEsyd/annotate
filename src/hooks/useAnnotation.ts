@@ -12,7 +12,7 @@ export const useAnnotation = (
   {
     imageFieldId,
     storageFieldId,
-  }: { imageFieldId: string; storageFieldId: string }
+  }: { imageFieldId: string | null; storageFieldId: string | null }
 ) => {
   annotationRecord =
     !annotationRecord || annotationRecord?.isDeleted ? null : annotationRecord
@@ -39,7 +39,7 @@ export const useAnnotation = (
       'multipleAttachments'
 
   const images =
-    isImageFieldValid && !annotationRecord?.isDeleted
+    isImageFieldValid && imageFieldId && !annotationRecord?.isDeleted
       ? (annotationRecord?.getCellValue(imageFieldId) as AttachmentData[])
       : null
 

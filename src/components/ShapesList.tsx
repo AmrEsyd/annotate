@@ -118,7 +118,7 @@ const _Shape: React.FC<{ object: fabric.Object; isSelected?: boolean }> = ({
       <ToolbarButton
         hideLabel
         icon={isSelected ? 'checkboxChecked' : 'checkboxUnchecked'}
-        label={`Select ${value}`}
+        label="Select"
         variant="secondary"
         style={{ margin: 0, padding: '0.25rem' }}
         onClick={() => {
@@ -130,7 +130,7 @@ const _Shape: React.FC<{ object: fabric.Object; isSelected?: boolean }> = ({
       <ToolbarButton
         hideLabel
         icon="trash"
-        label={`Remove ${value}`}
+        label="Remove"
         variant="secondary"
         style={{ margin: 0, padding: '0.25rem' }}
         onClick={() => {

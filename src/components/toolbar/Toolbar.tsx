@@ -1,6 +1,5 @@
 import { fabric } from 'fabric-pure-browser'
 import { IObjectOptions } from 'fabric/fabric-impl'
-import findKey from 'lodash/findKey'
 import React, { useState } from 'react'
 import { FiMousePointer, FiType } from 'react-icons/fi'
 

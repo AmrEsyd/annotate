@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 
+import { FieldType } from '@airtable/blocks/models'
 import {
   Dialog,
   FieldPickerSynced,
@@ -74,6 +75,7 @@ export const Settings: React.FC<{ onClose: () => unknown }> = ({ onClose }) => {
       >
         {annotationsTable && (
           <FieldPickerSynced
+            allowedTypes={[FieldType.MULTIPLE_ATTACHMENTS]}
             table={annotationsTable}
             globalConfigKey={globalConfigKeys.imageFieldId}
           />
@@ -85,6 +87,7 @@ export const Settings: React.FC<{ onClose: () => unknown }> = ({ onClose }) => {
       >
         {annotationsTable && (
           <FieldPickerSynced
+            allowedTypes={[FieldType.MULTILINE_TEXT, FieldType.RICH_TEXT]}
             table={annotationsTable}
             globalConfigKey={globalConfigKeys.storageFieldId}
           />

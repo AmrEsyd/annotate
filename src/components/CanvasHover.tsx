@@ -1,99 +1,127 @@
 import { Canvas } from 'fabric/fabric-impl'
-import clamp from 'lodash/clamp'
-import React, { useEffect, useState } from 'react'
+import { throttle } from 'lodash'
+import React, { useEffect, useRef, useState } from 'react'
 
+import { CollaboratorData } from '@airtable/blocks/dist/types/src/types/collaborator'
 import { Box, CollaboratorToken, Text, useBase } from '@airtable/blocks/ui'
 
-const COLLABORATOR_TOKEN_HIGHT = 25
-const COLLABORATOR_TOKEN_MAX_WIDTH = 80
+const TEXT_MAX_WIDTH = 120
 
 export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
   canvas,
 }) => {
   const base = useBase()
-  const [hoveredObject, setObjectNode] = useState<fabric.Object | null>(null)
-  const modifiedByCollaborator = base.getCollaboratorByIdIfExists(
-    hoveredObject?.modifiedBy || ''
-  )
+  const boxRef = useRef<HTMLElement>(null)
+
+  const [cursorPosition, setCursorPosition] = useState<{
+    x: number
+    y: number
+  } | null>(null)
+
+  const [objectInfo, setObjectInfo] = useState<{
+    name?: string
+    modifiedBy?: CollaboratorData | null
+  } | null>(null)
 
   useEffect(() => {
     if (!canvas) return
 
     const handleMouseOver = (event: fabric.IEvent) => {
-      const node = event.target
-      if (node) {
-        setObjectNode(node)
+      const object = event.target
+      if (object) {
+        setObjectInfo({
+          name: object.name,
+          modifiedBy: base.getCollaboratorByIdIfExists(
+            object?.modifiedBy || ''
+          ),
+        })
       } else {
-        setObjectNode(null)
+        setObjectInfo(null)
+        setCursorPosition(null)
       }
     }
 
+    const handleMouseMove = throttle((event: fabric.IEvent) => {
+      const mouseEvent = event.e instanceof MouseEvent ? event.e : null
+      const object = event.target
+      if (mouseEvent && object) {
+        const container = document
+          .querySelector('#canvasContainer')
+          ?.getBoundingClientRect()
+        const box = boxRef.current
+        const boxWidth = box?.clientWidth || 0
+        const boxHeight = box?.clientHeight || 0
+
+        if (!container) return
+
+        const shouldFlipX =
+          container.width - boxWidth - mouseEvent.clientX - 10 < 0
+
+        const shouldFlipY = container.height - mouseEvent.clientY - 15 < 0
+
+        setCursorPosition({
+          x: shouldFlipX
+            ? mouseEvent.clientX - boxWidth
+            : mouseEvent.clientX + 10,
+          y: shouldFlipY
+            ? mouseEvent.clientY - boxHeight
+            : mouseEvent.clientY + 10,
+        })
+      }
+    }, 50)
+
     const handleMouseOut = () => {
-      setObjectNode(null)
+      setObjectInfo(null)
+      setCursorPosition(null)
     }
 
-    canvas.on({ 'mouse:over': handleMouseOver, 'mouse:out': handleMouseOut })
+    canvas.on({
+      'mouse:over': handleMouseOver,
+      'mouse:move': handleMouseMove,
+      'mouse:out': handleMouseOut,
+    })
 
     return () => {
       canvas?.off('mouse:over', handleMouseOver)
+      canvas?.off('mouse:move', handleMouseMove)
       canvas?.off('mouse:out', handleMouseOut)
     }
-  }, [canvas])
+  }, [base, canvas])
 
-  if (!modifiedByCollaborator || !hoveredObject) return <></>
+  if (!objectInfo) return <></>
 
-  const container = hoveredObject.canvas?.getElement()
-  const containerBoundingRect = container?.getBoundingClientRect()
-  const objectBoundingRect = hoveredObject.getBoundingRect()
-
-  if (objectBoundingRect.width / 2 < COLLABORATOR_TOKEN_MAX_WIDTH) return <></>
-
-  const x = clamp(
-    objectBoundingRect.left + (containerBoundingRect?.x || 0),
-    containerBoundingRect?.left || 0,
-    (containerBoundingRect?.right || window.innerWidth) -
-      COLLABORATOR_TOKEN_MAX_WIDTH
-  )
-
-  const y = clamp(
-    objectBoundingRect.top +
-      (containerBoundingRect?.y || 0) -
-      COLLABORATOR_TOKEN_HIGHT,
-    containerBoundingRect?.top || 0,
-    (containerBoundingRect?.bottom || window.innerHeight) -
-      COLLABORATOR_TOKEN_HIGHT
-  )
-
-  return hoveredObject ? (
+  return cursorPosition && objectInfo ? (
     <Box
+      ref={boxRef}
       position="absolute"
-      top={`${y}px`}
-      left={`${x}px`}
       zIndex={90}
       overflow="hidden"
-      maxWidth={COLLABORATOR_TOKEN_MAX_WIDTH}
+      style={{
+        top: cursorPosition.y,
+        left: cursorPosition.x,
+      }}
     >
-      {modifiedByCollaborator && (
+      {objectInfo.modifiedBy && (
         <CollaboratorToken
           style={{ pointerEvents: 'none' }}
-          key={modifiedByCollaborator.id}
-          collaborator={modifiedByCollaborator}
+          key={objectInfo.modifiedBy.id}
+          collaborator={objectInfo.modifiedBy}
           marginRight={1}
         />
       )}
-      {hoveredObject.name && (
+      {objectInfo.name && (
         <Text
           backgroundColor="dark"
           width="fit-content"
           padding={1}
           borderRadius={2}
-          maxWidth={COLLABORATOR_TOKEN_MAX_WIDTH}
+          maxWidth={TEXT_MAX_WIDTH}
           size="small"
           textColor="white"
           overflow="hidden"
           style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         >
-          {hoveredObject.name}
+          {objectInfo.name}
         </Text>
       )}
     </Box>

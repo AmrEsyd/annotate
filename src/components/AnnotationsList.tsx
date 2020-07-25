@@ -11,7 +11,7 @@ import {
   expandRecord,
   Icon,
   Label,
-  Loader,
+  Text,
   TextButton,
 } from '@airtable/blocks/ui'
 import styled from '@emotion/styled'
@@ -85,7 +85,7 @@ const _AnnotationCanvas: React.FC<AnnotationProps> = (props) => {
         })
       }
     }
-  }, [image])
+  }, [annotation.jsonValue, image])
 
   const color = annotation.color && (
     <ColorLine style={{ backgroundColor: annotation.color.hex || undefined }} />
@@ -201,8 +201,8 @@ export const _AnnotationList: React.FC<AnnotationListProps> = (props) => {
             )}
           </AutoSizer>
         ) : (
-          <Box margin="auto">
-            No Annotations{' '}
+          <Box margin="auto" textAlign="center">
+            <Text>No Annotations</Text>
             <TextButton onClick={() => onAddNewClick?.()}>
               Create New
             </TextButton>

@@ -9,6 +9,7 @@ export function useHotkeys(
   ) => unknown,
   deps?: any[]
 ): void {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoisedCallback = useCallback(
     callback ? callback : () => {},
     deps || []

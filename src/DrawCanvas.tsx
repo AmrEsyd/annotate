@@ -1,5 +1,4 @@
 import { fabric } from 'fabric-pure-browser'
-import pick from 'lodash/pick'
 import React, { useEffect } from 'react'
 import { useDebouncedCallback } from 'use-debounce'
 
@@ -11,37 +10,23 @@ import { useHotkeys, useImage, useResize } from './hooks'
 import { CanvasTool } from './tools'
 import { getCanvasJson, updateAndScaleImage } from './utils'
 
-export const filteredStyles = [
-  'stroke',
-  'strokeDashArray',
-  'strokeWidth',
-  'fill',
-  'fontSize',
-  'fontWeight',
-  'fontStyle',
-  'underline',
-  'overline',
-  'linethrough',
-  'textBackgroundColor',
-]
-
-type ImageEditorProps = {
+type DrawCanvasProps = {
   drawLayerJson?: string
   onDraw?: (newDrawLayerJson: string) => void
   imageUrl: string
-  setStyleValue: any
+  onSelection: (e: fabric.IEvent) => unknown
   activeTool: CanvasTool | null
   handleToolChange: (newTool: CanvasTool | null) => void
   canvas: fabric.Canvas | null
   setCanvas: React.Dispatch<React.SetStateAction<fabric.Canvas | null>>
 }
 
-export const DrawCanvas: React.FC<ImageEditorProps> = (props) => {
+export const DrawCanvas: React.FC<DrawCanvasProps> = (props) => {
   const {
     imageUrl,
     drawLayerJson: syncedStorage,
     onDraw: updateSyncedStorage,
-    setStyleValue,
+    onSelection,
     activeTool,
     handleToolChange,
     canvas,
@@ -93,20 +78,6 @@ export const DrawCanvas: React.FC<ImageEditorProps> = (props) => {
   useEffect(() => {
     if (!canvas) return
 
-    const updateStyleValue = (selected?: fabric.Object[]) => {
-      if (
-        selected?.length === 1 &&
-        selected[0] instanceof fabric.Object &&
-        !(selected[0] instanceof fabric.Group)
-      ) {
-        const objectStyles =
-          selected instanceof fabric.Textbox
-            ? selected.getSelectionStyles()
-            : selected[0].toObject()
-        setStyleValue(pick(objectStyles, filteredStyles))
-      }
-    }
-
     const events = {
       'after:render': saveToAirtable,
       'mouse:up': (e: fabric.IEvent) => {
@@ -114,8 +85,9 @@ export const DrawCanvas: React.FC<ImageEditorProps> = (props) => {
         handleToolChange(null)
       },
       'mouse:move': (e: fabric.IEvent) => activeTool?.onMouseMove?.(e),
-      'selection:created': (e: fabric.IEvent) => updateStyleValue(e.selected),
-      'selection:updated': (e: fabric.IEvent) => updateStyleValue(e.selected),
+      'selection:created': (e: fabric.IEvent) => onSelection(e),
+      'selection:updated': (e: fabric.IEvent) => onSelection(e),
+      'selection:cleared': (e: fabric.IEvent) => onSelection(e),
       'mouse:down': (event: fabric.IEvent) => {
         if (event.button === 1 /* left click */) {
           const noActiveObjects = canvas.getActiveObjects().length === 0
@@ -160,7 +132,7 @@ export const DrawCanvas: React.FC<ImageEditorProps> = (props) => {
     activeTool,
     canvas,
     saveToAirtable,
-    setStyleValue,
+    onSelection,
     handleToolChange,
     session.currentUser?.id,
   ])

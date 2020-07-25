@@ -81,8 +81,8 @@ export const ToolbarButton: React.FC<
   return (
     <Tooltip
       style={{ padding: '5px' }}
-      placementX={'center' as any}
-      placementY={'bottom' as any}
+      placementX={Tooltip.placements.CENTER}
+      placementY={Tooltip.placements.BOTTOM}
       content={() => tooltipContent}
     >
       <ToolbarButtonStyled

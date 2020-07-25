@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 
 import { base, globalConfig, session, undoRedo } from '@airtable/blocks'
-import { FieldType } from '@airtable/blocks/dist/types/src/types/field'
+import { FieldType } from '@airtable/blocks/models'
 import {
   Box,
   Button,
@@ -23,10 +23,11 @@ if (localStorage.getItem(localStorageKeys.undoRedo) === 'Yes') {
 }
 
 type BlockContextType = {
-  showSettings: () => unknown
-  showKeyboardShortcuts: () => unknown
+  showSettings?: () => unknown
+  showKeyboardShortcuts?: () => unknown
 }
-export const BlockContext = React.createContext<BlockContextType>({} as any)
+
+export const BlockContext = React.createContext<BlockContextType>({})
 
 export function Main() {
   const [shouldRenderSettings, setShouldRenderSettings] = useState(false)
@@ -55,9 +56,9 @@ export function Main() {
     const createTable = () =>
       base
         .unstable_createTableAsync('annotations', [
-          { name: 'Title', type: 'singleLineText' as FieldType },
-          { name: STORAGE_FIELD_NAME, type: 'multilineText' as FieldType },
-          { name: IMAGE_FIELD_NAME, type: 'multipleAttachments' as FieldType },
+          { name: 'Title', type: FieldType.SINGLE_LINE_TEXT },
+          { name: STORAGE_FIELD_NAME, type: FieldType.MULTILINE_TEXT },
+          { name: IMAGE_FIELD_NAME, type: FieldType.MULTIPLE_ATTACHMENTS },
         ])
         .then((table) => {
           globalConfig.setPathsAsync([
@@ -92,7 +93,7 @@ export function Main() {
             permissionsForCreateTable.reasonDisplayString
           )}
           <Text size="small">
-            If you've used it before you can select the table in{' '}
+            {"If you've used it before you can select the table in "}
             <TextButton
               size="small"
               onClick={() => setShouldRenderSettings(true)}

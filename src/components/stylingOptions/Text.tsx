@@ -2,14 +2,7 @@ import { TextOptions } from 'fabric/fabric-impl'
 import React from 'react'
 
 import { SelectOption } from '@airtable/blocks/dist/types/src/ui/select_and_select_buttons_helpers'
-import {
-  Box,
-  Button,
-  FormField,
-  Icon,
-  Select,
-  SelectButtons,
-} from '@airtable/blocks/ui'
+import { Box, Button, FormField, Icon, Select } from '@airtable/blocks/ui'
 import is from '@sindresorhus/is'
 
 import { PopoverButton } from '../../components'
@@ -37,7 +30,7 @@ export function Text({ value, onChange }: FontSizeSettingProps) {
       <FormField label="Font Size" margin={1}>
         <Select
           width="fit-content"
-          value={Number(value?.fontSize)}
+          value={Number(value?.fontSize) || 64}
           options={sizeOptions}
           onChange={(newValue) => {
             if (is.number(newValue)) onChange({ ...value, fontSize: newValue })

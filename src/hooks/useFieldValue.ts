@@ -11,7 +11,7 @@ const textFieldTypes = ['multilineText', 'richText', 'singleLineText']
 
 export const useFieldValue = <T = unknown>(
   record?: Record | null,
-  fieldId?: string
+  fieldId?: string | null
 ) => {
   record = record?.isDeleted ? null : record
   useWatchable(record, ['cellValues'])

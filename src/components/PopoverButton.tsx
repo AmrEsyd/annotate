@@ -65,7 +65,7 @@ const _PopoverButton: React.ForwardRefRenderFunction<
     <Popover
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
-      fitInWindowMode={fitInWindowMode || ('flip' as any)}
+      fitInWindowMode={fitInWindowMode || Popover.fitInWindowModes.FLIP}
       renderContent={() => (
         <Menu type={styleType}>
           {options

@@ -1,7 +1,7 @@
 import { IObjectOptions } from 'fabric/fabric-impl'
 import React from 'react'
 
-import { Icon, Text } from '@airtable/blocks/ui'
+import { Icon, Label } from '@airtable/blocks/ui'
 
 import { Divider, MenuOption, PopoverButton } from '../../components'
 
@@ -71,10 +71,14 @@ export const Stroke: React.FC<StrokeProps> = ({ styleValue, onChange }) => {
       styleType="white"
       eventType="click"
       options={[
-        <Text size="small">Line size</Text>,
+        <Label marginY={2} paddingLeft={2} key="size">
+          Line size
+        </Label>,
         ...strokeOptions,
         <Divider key="Divider" style={{ margin: '0.5rem' }} />,
-        <Text size="small">Line type</Text>,
+        <Label paddingLeft={2} key="type">
+          Line type
+        </Label>,
         ...lineOptions,
       ]}
     />

@@ -1,16 +1,9 @@
+import { fabric } from 'fabric-pure-browser'
 import { IObjectOptions } from 'fabric/fabric-impl'
-import pick from 'lodash/pick'
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 
 import { Record } from '@airtable/blocks/dist/types/src/models/models'
-import {
-  Box,
-  colors,
-  colorUtils,
-  expandRecord,
-  TextButton,
-} from '@airtable/blocks/ui'
-import is from '@sindresorhus/is'
+import { Box, expandRecord, TextButton } from '@airtable/blocks/ui'
 
 import {
   AnnotationList,
@@ -27,23 +20,19 @@ import {
   Toolbar,
   ToolbarButton,
 } from './components'
-import { DrawCanvas, filteredStyles } from './DrawCanvas'
+import { DrawCanvas } from './DrawCanvas'
 import {
+  defaultStyle,
   useActiveRecords,
   useAnnotation,
   useHotkeys,
   useLinkedRecords,
   useSettings,
+  useStyle,
 } from './hooks'
 import { BlockContext } from './Main'
 import { CanvasTool, Select } from './tools'
-import { downloadCanvasAsImage, updateActiveObjectsStyles } from './utils'
-
-const defaultStyle: IObjectOptions = {
-  stroke: colorUtils.getHexForColor(colors.BLUE_BRIGHT)!,
-  strokeWidth: 8,
-  fill: 'transparent',
-}
+import { downloadCanvasAsImage } from './utils'
 
 export const Editor: React.FC = () => {
   const [
@@ -72,11 +61,14 @@ export const Editor: React.FC = () => {
   const activeAnnotation = useAnnotation(activeAnnotationRecord, {
     imageFieldId,
     storageFieldId,
-  } as any)
+  })
   const [shouldExpandSidebar, setShouldExpandSidebar] = useState(true)
-  const [styleValue, setStyleValue] = useState<IObjectOptions>(defaultStyle)
   const [activeTool, setActiveTool] = useState<CanvasTool | null>(null)
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null)
+  const { activeStyle, updateUserStyles, setSelectedObjectStyle } = useStyle(
+    activeTool,
+    canvas
+  )
 
   const annotationRecords = isAnnotationTableActive
     ? activeRecords
@@ -126,7 +118,7 @@ export const Editor: React.FC = () => {
     {
       icon: 'laptop',
       label: 'Keyboard shortcuts',
-      onClick: () => showKeyboardShortcuts(),
+      onClick: () => showKeyboardShortcuts?.(),
     },
     {
       label: 'Delete All',
@@ -141,7 +133,7 @@ export const Editor: React.FC = () => {
       const tool = newTool || new Select(canvas)
       const props: IObjectOptions = {
         ...defaultStyle,
-        ...styleValue,
+        ...activeStyle,
       }
 
       if (activeTool?.name !== tool.name) {
@@ -149,19 +141,8 @@ export const Editor: React.FC = () => {
         tool.configureCanvas?.(props)
       }
     },
-    [activeTool?.name, canvas, styleValue]
+    [activeTool?.name, canvas, activeStyle]
   )
-
-  const handleStyleValueChange = (newStyleValue: fabric.IObjectOptions) => {
-    let newFilteredStyle = pick(newStyleValue, filteredStyles)
-    if (is.nonEmptyObject(newFilteredStyle)) {
-      const fill = newFilteredStyle.fill || 'transparent'
-      newFilteredStyle = { ...newFilteredStyle, fill }
-      setStyleValue(newFilteredStyle)
-      activeTool?.configureCanvas?.(newFilteredStyle)
-      updateActiveObjectsStyles(canvas, newFilteredStyle)
-    }
-  }
 
   useHotkeys(
     shortcutsList.previousAnnotation.shortcuts.join(),
@@ -294,8 +275,8 @@ export const Editor: React.FC = () => {
         <Toolbar
           canvas={canvas}
           handleToolChange={handleToolChange}
-          styleValue={styleValue}
-          handleStyleValueChange={handleStyleValueChange}
+          styleValue={activeStyle}
+          handleStyleValueChange={updateUserStyles}
           updatePermission={activeAnnotation.updatePermission}
           currentTool={activeTool}
           canvasMenuOptions={canvasMenuOptions}
@@ -338,7 +319,7 @@ export const Editor: React.FC = () => {
               <DrawCanvas
                 canvas={canvas}
                 setCanvas={setCanvas}
-                setStyleValue={setStyleValue}
+                onSelection={setSelectedObjectStyle}
                 activeTool={activeTool}
                 handleToolChange={handleToolChange}
                 key={activeAnnotation.image?.id}

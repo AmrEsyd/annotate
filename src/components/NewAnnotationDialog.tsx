@@ -27,7 +27,7 @@ type NewAnnotationDialogProps = Omit<
   onSelect: (newAnnotationRecordId: Record | null) => void
 }
 
-const EMPTY_CANVAS_ID = 'emptyCanvas'
+const WHITEBOARD_ID = 'whiteboard'
 
 export const NewAnnotationDialog: FC<NewAnnotationDialogProps> = (props) => {
   const { records, onSelect, ...dialogProps } = props
@@ -75,7 +75,11 @@ export const NewAnnotationDialog: FC<NewAnnotationDialogProps> = (props) => {
       if (recordTable.unstable_hasPermissionToCreateField()) {
         //TODO : Create field when 'multipleRecordLinks' fields are supported
         setDialogContent(
-          `You need to add a 'Link to another record' field in '${recordTableName}' table linking to '${annotationsTableName}' table.`
+          <>
+            You need to add a <b>Link to another record</b> field in{' '}
+            <b>{recordTableName}</b> table linking to{' '}
+            <b>{annotationsTableName}</b> table.
+          </>
         )
       }
       return Error(
@@ -90,7 +94,7 @@ export const NewAnnotationDialog: FC<NewAnnotationDialogProps> = (props) => {
       [imageFieldId]: [imageToAdd],
     }
 
-    if (imageToAdd.id === EMPTY_CANVAS_ID)
+    if (imageToAdd.id === WHITEBOARD_ID)
       newAnnotationRecordValue = {
         [primaryFieldId]: name,
       }
@@ -126,10 +130,10 @@ export const NewAnnotationDialog: FC<NewAnnotationDialogProps> = (props) => {
     }
   }
 
-  const emptyCanvas: imageData | undefined = records?.[0] && {
-    id: EMPTY_CANVAS_ID,
+  const whiteboard: imageData | undefined = records?.[0] && {
+    id: WHITEBOARD_ID,
     url: '',
-    filename: 'Empty Canvas',
+    filename: 'Whiteboard',
     record: records?.[0],
   }
 
@@ -155,7 +159,7 @@ export const NewAnnotationDialog: FC<NewAnnotationDialogProps> = (props) => {
       >
         <Dialog.CloseButton />
         <ImageList
-          images={[emptyCanvas, ...activeRecordsImages]}
+          images={[whiteboard, ...activeRecordsImages]}
           primaryFieldName={
             (!annotationsTable?.isDeleted &&
               annotationsTable?.primaryField.name) ||
@@ -230,7 +234,7 @@ const ImageList: React.FC<ImageListProps> = (props) => {
   }
 
   return (
-    <Box width="80vw" maxWidth="500px">
+    <Box width="80vw" maxWidth="550px">
       <Heading>Create new annotation</Heading>
       <Box
         position="sticky"
@@ -269,7 +273,7 @@ const ImageList: React.FC<ImageListProps> = (props) => {
                       alignItems="center"
                       overflow="hidden"
                     >
-                      {image.id === EMPTY_CANVAS_ID && (
+                      {image.id === WHITEBOARD_ID && (
                         <Text fontSize={64}>🎨</Text>
                       )}
                       <img src={image.thumbnails?.large?.url} />

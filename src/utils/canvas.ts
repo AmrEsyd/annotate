@@ -22,7 +22,7 @@ export const updateActiveObjectsStyles = (
   const selected = canvas.getActiveObjects()
   selected.map((object) => {
     if (object instanceof fabric.Textbox) {
-      object.setSelectionStyles(styles)
+      object.styles = {}
     } else if (object instanceof fabric.Group) {
       object.forEachObject((childObject) => {
         childObject.setOptions(styles)

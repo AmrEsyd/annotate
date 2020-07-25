@@ -74,6 +74,7 @@ fabric.Object.prototype.cornerColor = 'rgb(255, 255, 255)'
 fabric.Object.prototype.cornerStrokeColor = 'rgb(53, 167, 242,0.9)'
 fabric.Object.prototype.borderColor = 'rgb(53, 167, 242,0.9)'
 fabric.Object.prototype.transparentCorners = false
+fabric.Object.prototype.strokeUniform = true
 //@ts-expect-error
 const objectControls = fabric.Object.prototype.controls
 objectControls.mtr.offsetY = -15
