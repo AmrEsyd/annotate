@@ -4,8 +4,8 @@ import data from 'emoji-mart/data/apple.json'
 import React, { useRef } from 'react'
 import { FiSmile } from 'react-icons/fi'
 
-import { PopoverButton, PopoverButtonRef, shortcutsList } from '../'
-import { useHotkeys } from '../../hooks'
+import { useHotkeys } from '../hooks'
+import { PopoverButton, PopoverButtonRef, shortcutsList } from './index'
 
 export const EmojiPicker: React.FC<{
   onSelect: (emoji: string) => void
@@ -13,7 +13,7 @@ export const EmojiPicker: React.FC<{
   const popoverButtonRef = useRef<PopoverButtonRef>(null)
 
   useHotkeys(
-    shortcutsList.emojiPicker.shortcuts.join(),
+    shortcutsList.emojiPicker.shortcuts,
     () => {
       popoverButtonRef.current?.togglePopover()
     },
@@ -31,6 +31,7 @@ export const EmojiPicker: React.FC<{
     >
       <NimblePicker
         autoFocus={true}
+        color="hsl(0,0%,20%)"
         theme="light"
         sheetSize={16}
         showPreview={false}

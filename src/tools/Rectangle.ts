@@ -33,8 +33,8 @@ export class Rectangle extends CanvasTool {
       originY: 'top',
       width: pointer.x - this.startX,
       height: pointer.y - this.startY,
-      rx: 10,
-      ry: 10,
+      rx: 2.5,
+      ry: 2.5,
     })
     this.canvas.add(this.rect)
   }

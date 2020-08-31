@@ -14,6 +14,7 @@ const _Canvas: ForwardRefRenderFunction<fabric.Canvas, CanvasProps> = (
     const canvas = new fabric.Canvas(CanvasElement, {
       stopContextMenu: true,
       fireRightClick: true,
+      includeDefaultValues: false,
       hoverCursor: 'pointer',
       selectionBorderColor: '#009efe',
       selectionColor: 'rgb(226, 243, 255, 0.3)',
@@ -28,7 +29,7 @@ const _Canvas: ForwardRefRenderFunction<fabric.Canvas, CanvasProps> = (
   }
 
   return (
-    <div style={{ border: 'solid 1px lightgray' }}>
+    <div style={{ boxShadow: 'rgba(0, 0, 0, 0.15) 0px 2px 5px' }}>
       <canvas ref={updateCanvas} />
     </div>
   )

@@ -20,9 +20,9 @@ export class Circle extends CanvasTool {
     this.props = props
   }
 
-  onMouseDown(o: fabric.IEvent) {
+  onMouseDown(event: fabric.IEvent) {
     this.isDown = true
-    let pointer = this.canvas.getPointer(o.e)
+    let pointer = this.canvas.getPointer(event.e)
     this.startX = pointer.x
     this.startY = pointer.y
     this.ellipse = new fabric.Ellipse({
@@ -37,9 +37,9 @@ export class Circle extends CanvasTool {
     this.canvas.add(this.ellipse)
   }
 
-  onMouseMove(o: fabric.IEvent) {
+  onMouseMove(event: fabric.IEvent) {
     if (!this.isDown || !this.ellipse || !this.startY || !this.startX) return
-    const pointer = this.canvas.getPointer(o.e)
+    const pointer = this.canvas.getPointer(event.e)
 
     this.ellipse.set({
       rx: Math.abs(this.startX - pointer.x) / 2,

@@ -1,12 +1,7 @@
-import { useMemo } from 'react'
-
 import { cursor } from '@airtable/blocks'
-import {
-  useBase,
-  useLoadable,
-  useRecords,
-  useWatchable,
-} from '@airtable/blocks/ui'
+import { useBase, useLoadable, useWatchable } from '@airtable/blocks/ui'
+
+import { useRecordsByIds } from './useRecords'
 
 export const useCursor = () => {
   useLoadable(cursor)
@@ -14,17 +9,8 @@ export const useCursor = () => {
 
   const base = useBase()
   const table = base.getTableByIdIfExists(cursor.activeTableId!)
-  const view = table?.getViewByIdIfExists(cursor.activeViewId!)
-  const queryResult = view?.selectRecords()
-  const viewRecords = useRecords(queryResult!)
 
-  const selectedRecords = useMemo(() => {
-    return viewRecords && viewRecords?.length > 0
-      ? viewRecords.filter((record) =>
-          cursor.selectedRecordIds.includes(record.id)
-        )
-      : null
-  }, [viewRecords])
+  const selectedRecords = useRecordsByIds(table!, cursor.selectedRecordIds)
 
-  return { table, selectedRecords, viewRecords, cursor, queryResult }
+  return { base, table, selectedRecords, cursor }
 }

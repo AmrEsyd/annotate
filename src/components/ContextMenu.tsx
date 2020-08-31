@@ -1,5 +1,5 @@
 import { fabric } from 'fabric-pure-browser'
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 
 import {
   FitInWindowMode,
@@ -7,49 +7,124 @@ import {
 } from '@airtable/blocks/dist/types/src/ui/popover'
 import {
   Box,
+  Button,
   CollaboratorToken,
+  Dialog,
+  FormField,
   Icon,
+  Input,
   Popover,
   Text,
   useBase,
 } from '@airtable/blocks/ui'
 
 import { Menu, MenuOption, renderOptions } from '../components'
-import { getTimeFromNow } from '../utils/time'
+import { EditorContext } from '../Editor'
+import {
+  deleteActiveObjects,
+  getTimeFromNow,
+  truncateCollaborator,
+} from '../utils'
+import { getLayerNameAndIcon } from './LayersPanel'
 
-export const ContextMenu: React.FC<{
-  canvasMenuOptions: MenuOption[]
-  canvas: fabric.Canvas | null
-}> = ({ canvas, canvasMenuOptions }) => {
+/** Max menu width */
+const MENU_WIDTH = 140
+/** Max collaborator name letters length */
+const COLLABORATOR_LENGTH = 12
+
+const RenameDialog: React.FC<{
+  object: fabric.Object
+  onClose: () => unknown
+}> = ({ object, onClose }) => {
+  const { name, icon } = getLayerNameAndIcon(object)
+  const [value, setValue] = useState(name || '')
+
+  const save = () => {
+    if (value !== name) {
+      object.set('name', value)
+      object.canvas?.fire('state:modified', { target: object })
+    }
+    onClose()
+  }
+
+  return (
+    <Dialog maxWidth="80vw" width="300px" onClose={onClose}>
+      <Dialog.CloseButton />
+      <FormField label={[icon, ' Name']}>
+        <Input
+          autoFocus
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        />
+      </FormField>
+      <Button onClick={save}>Save</Button>
+    </Dialog>
+  )
+}
+
+export type ContextMenuEvent = {
+  position: { x: number; y: number }
+  object?: fabric.Object
+}
+
+type ContextMenuProps = {
+  menuEvent: ContextMenuEvent | null
+  menuOptions: MenuOption[]
+}
+
+export const ContextMenu: React.FC<ContextMenuProps> = ({
+  menuEvent,
+  menuOptions,
+}) => {
   const base = useBase()
-  const [
-    contextMenuEvent,
-    setContextMenuEvent,
-  ] = useState<fabric.IEvent | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const { setContextMenu, canvas, canvasContainerRef } = useContext(
+    EditorContext
+  )
+  const [renameObject, setRenameObject] = useState<fabric.Object | null>(null)
 
   useEffect(() => {
     const hideMenu = (event: MouseEvent) => {
-      const menu = document.getElementById('ContextMenu')
+      const menu = menuRef.current
+      if (event.target instanceof HTMLCanvasElement) return
+
       if (
-        !(event.target instanceof HTMLCanvasElement) &&
-        !menu?.contains(event.target as any)
+        menu &&
+        !menu?.contains(event.target as any) &&
+        event.button !== 3 /* 3 is a right click */
       ) {
-        setContextMenuEvent(null)
+        setContextMenu(null)
       }
     }
+
     window.addEventListener('mousedown', hideMenu)
     return () => {
       window.removeEventListener('mousedown', hideMenu)
     }
-  }, [])
+  }, [renameObject, canvasContainerRef, setContextMenu])
+
+  useEffect(() => {
+    const showMenu = (event: MouseEvent) => {
+      if (canvasContainerRef.current === event.target) {
+        event.stopPropagation()
+        event.preventDefault()
+        setContextMenu({ position: { x: event.clientX, y: event.clientY } })
+      }
+    }
+
+    window.addEventListener('contextmenu', showMenu)
+    return () => {
+      window.removeEventListener('contextmenu', showMenu)
+    }
+  }, [renameObject, canvasContainerRef, setContextMenu])
 
   useEffect(() => {
     const renderContextMenu = (e: fabric.IEvent) => {
       if (e.button !== 3 /* 3 is a right click */) {
-        setContextMenuEvent(null)
+        setContextMenu(null)
         return
       }
-      setContextMenuEvent(e)
+      setContextMenu({ position: e.e as MouseEvent, object: e.target })
     }
 
     if (canvas) {
@@ -58,13 +133,22 @@ export const ContextMenu: React.FC<{
         canvas.off('mouse:down', renderContextMenu)
       }
     }
-  }, [canvas])
+  }, [canvas, setContextMenu])
 
-  if (!contextMenuEvent) return <></>
+  if (renameObject) {
+    return (
+      <RenameDialog
+        object={renameObject}
+        onClose={() => setRenameObject(null)}
+      />
+    )
+  } else if (!menuEvent) {
+    return <></>
+  }
 
   let menu: React.ReactElement
-  const mouseEvent = contextMenuEvent.e as MouseEvent
-  const object = contextMenuEvent.target
+  const position = menuEvent.position
+  const object = menuEvent.object
 
   const preventDefaultMenu = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
@@ -75,14 +159,15 @@ export const ContextMenu: React.FC<{
   }
 
   if (!object) {
-    const canvasOptions = renderOptions(canvasMenuOptions, 'dark')
+    //TODO: Default menu
+    const options = renderOptions(menuOptions, 'dark')
     menu = (
       <Menu id="ContextMenu" type="dark" onContextMenu={preventDefaultMenu}>
-        {canvasOptions}
+        {options}
       </Menu>
     )
   } else if (object) {
-    const { createdBy, modifiedBy, createdTime, modifiedTime } = object
+    const { createdBy, modifiedBy, createdTime } = object
 
     const createdByCollaborator =
       createdBy && base.getCollaboratorByIdIfExists(createdBy)
@@ -92,11 +177,21 @@ export const ContextMenu: React.FC<{
     const objectOptions = renderOptions(
       [
         {
+          label: 'Rename',
+          icon: 'edit',
+          onClick: () => {
+            setContextMenu(null)
+            if (!(object instanceof fabric.ActiveSelection)) {
+              setRenameObject(object)
+            }
+          },
+        },
+        {
           label: 'Bring To Front',
           icon: 'chevronUp',
           onClick: () => {
             object.bringToFront()
-            setContextMenuEvent(null)
+            setContextMenu(null)
           },
         },
         {
@@ -104,20 +199,22 @@ export const ContextMenu: React.FC<{
           icon: 'chevronDown',
           onClick: () => {
             object.sendToBack()
-            setContextMenuEvent(null)
+            setContextMenu(null)
           },
         },
         {
           label: 'Delete',
           icon: 'trash',
           onClick: () => {
-            const canvas = object?.canvas
+            if (!canvas) return
+            canvas.discardActiveObject()
             if (object instanceof fabric.ActiveSelection) {
-              object.forEachObject((o) => canvas?.fxRemove(o))
+              deleteActiveObjects(canvas)
             } else {
-              canvas?.fxRemove(object)
+              canvas.remove(object)
             }
-            setContextMenuEvent(null)
+
+            setContextMenu(null)
           },
         },
       ],
@@ -125,34 +222,42 @@ export const ContextMenu: React.FC<{
     )
 
     menu = (
-      <Menu id="ContextMenu" type="dark" onContextMenu={preventDefaultMenu}>
-        {object.name && (
-          <Text paddingX={2} paddingY={1} marginLeft={1} textColor="white">
-            {object.name}
-          </Text>
-        )}
-        {createdByCollaborator && (
+      <Menu
+        id="ContextMenu"
+        type="dark"
+        style={{ maxWidth: MENU_WIDTH }}
+        onContextMenu={preventDefaultMenu}
+      >
+        {modifiedByCollaborator && createdBy !== modifiedBy && (
           <Box paddingX={2} paddingY={1}>
-            <Text textColor="white">
-              <Icon name="personalAuto" key="icon" /> Created By
-            </Text>
-            <Box display="flex" alignItems="center">
-              <CollaboratorToken collaborator={createdByCollaborator} />
-              <Text size="small" textColor="white" marginLeft="auto">
-                {getTimeFromNow(createdTime)}
-              </Text>
+            <Text textColor="white">Modified By</Text>
+            <Box display="flex" alignItems="center" marginTop={1}>
+              <Icon name="personalAuto" fillColor="white" marginRight={1} />
+              <CollaboratorToken
+                collaborator={truncateCollaborator(
+                  modifiedByCollaborator,
+                  COLLABORATOR_LENGTH
+                )}
+              />
             </Box>
           </Box>
         )}
-        {modifiedByCollaborator && (
+        {createdByCollaborator && (
           <Box paddingX={2} paddingY={1}>
-            <Text textColor="white">
-              <Icon name="personalAuto" key="icon" /> Modified By
-            </Text>
-            <Box display="flex" alignItems="center">
-              <CollaboratorToken collaborator={modifiedByCollaborator} />
-              <Text size="small" textColor="white" marginLeft="auto">
-                {getTimeFromNow(modifiedTime)}
+            <Text textColor="white">Created By</Text>
+            <Box display="flex" alignItems="center" marginTop={1}>
+              <Icon name="personal" fillColor="white" marginRight={1} />
+              <CollaboratorToken
+                collaborator={truncateCollaborator(
+                  createdByCollaborator,
+                  COLLABORATOR_LENGTH
+                )}
+              />
+            </Box>
+            <Box display="flex" alignItems="center" marginTop={1}>
+              <Icon name="time" fillColor="white" marginRight={1} />
+              <Text size="small" textColor="white">
+                Created {getTimeFromNow(createdTime)}
               </Text>
             </Box>
           </Box>
@@ -165,17 +270,21 @@ export const ContextMenu: React.FC<{
   return (
     <Popover
       placementX={'right' as PopoverPlacements.LEFT}
-      isOpen={!!contextMenuEvent}
-      onClose={() => setContextMenuEvent(null)}
+      isOpen={!!menuEvent}
+      onClose={() => setContextMenu(null)}
       fitInWindowMode={'flip' as FitInWindowMode}
       backgroundStyle={{ pointerEvents: 'none' }}
-      renderContent={() => menu}
+      renderContent={() => (
+        <Box>
+          <Box ref={menuRef}>{menu}</Box>
+        </Box>
+      )}
     >
       <div
         style={{
           position: 'absolute',
-          left: mouseEvent.x,
-          top: mouseEvent.y,
+          left: position.x,
+          top: position.y,
         }}
       />
     </Popover>

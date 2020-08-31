@@ -3,11 +3,11 @@ import React, { useEffect, useState } from 'react'
 import { Box, Popover, TextButton } from '@airtable/blocks/ui'
 import is from '@sindresorhus/is'
 
-import { Shortcut, ToolbarButton, ToolbarButtonProps } from './'
+import { IconButton, IconButtonProps, Shortcut } from './index'
 import { shortcutsIds, shortcutsList } from './keyboardShortcutsList'
 import { Menu, MenuItem, menuVariants } from './Layout'
 
-type PopoverButtonProps = ToolbarButtonProps & {
+type PopoverButtonProps = IconButtonProps & {
   styleType: menuVariants
   eventType: 'click' | 'hover'
   label?: React.ReactNode
@@ -74,7 +74,7 @@ const _PopoverButton: React.ForwardRefRenderFunction<
         </Menu>
       )}
     >
-      <ToolbarButton
+      <IconButton
         variant="secondary"
         {...buttonProps}
         {...(eventType === 'hover' ? hoverProps : clickProps)}

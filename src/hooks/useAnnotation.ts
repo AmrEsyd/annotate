@@ -1,68 +1,91 @@
-import lzString from 'lz-string'
+import { useMemo } from 'react'
 
-import { Record } from '@airtable/blocks/dist/types/src/models/models'
-import { AttachmentData } from '@airtable/blocks/dist/types/src/types/attachment'
-import { colorUtils, useLoadable } from '@airtable/blocks/ui'
+import { TableOrViewQueryResult } from '@airtable/blocks/models'
+import {
+  useBase,
+  useLoadable,
+  useRecordById,
+  useWatchable,
+} from '@airtable/blocks/ui'
 import is from '@sindresorhus/is'
 
-import { useFieldValue } from './useFieldValue'
+import { Annotation } from '../Annotation'
+import { useSettings } from '../hooks'
+import { Attachment } from './useRecords'
 
-export const useAnnotation = (
-  annotationRecord: Record | null | undefined,
-  {
-    imageFieldId,
-    storageFieldId,
-  }: { imageFieldId: string | null; storageFieldId: string | null }
-) => {
-  annotationRecord =
-    !annotationRecord || annotationRecord?.isDeleted ? null : annotationRecord
-  const [rawValue, setStorageValue, updatePermission] = useFieldValue<any>(
-    annotationRecord,
-    storageFieldId
-  )
-  const table = annotationRecord?.parentTable
-  const view = !table || table?.isDeleted ? null : table.views[0]
-  const viewMetadata = !view || view?.isDeleted ? null : view.selectMetadata()
+function binarySearchRecords(
+  queryResult: TableOrViewQueryResult,
+  searchValue: string
+) {
+  searchValue = searchValue?.toLowerCase()
+  const recordIds = queryResult.recordIds
+  if (is.nullOrUndefined(searchValue) || !is.nonEmptyArray(recordIds)) {
+    return null
+  }
 
-  useLoadable(viewMetadata)
+  let maxIndex = recordIds.length - 1,
+    minIndex = 0,
+    currentIndex = 0
 
-  //TODO: Return useful error messages
-  if (annotationRecord?.isDeleted || table?.isDeleted)
-    return { isDeleted: true }
+  while (minIndex <= maxIndex) {
+    currentIndex = Math.floor((minIndex + maxIndex) / 2)
 
-  const color =
-    viewMetadata && annotationRecord?.getColorInView(viewMetadata.parentView)
+    const record = queryResult.getRecordByIdIfExists(recordIds[currentIndex])
+    let name = record?.getCellValue(record.parentTable.primaryField) as string
+    name = name?.toLowerCase()
 
-  const isImageFieldValid =
-    is.string(imageFieldId) &&
-    annotationRecord?.parentTable?.getFieldByIdIfExists(imageFieldId)?.type ===
-      'multipleAttachments'
-
-  const images =
-    isImageFieldValid && imageFieldId && !annotationRecord?.isDeleted
-      ? (annotationRecord?.getCellValue(imageFieldId) as AttachmentData[])
-      : null
-
-  const jsonValue = is.string(rawValue)
-    ? lzString.decompressFromBase64(rawValue) || undefined
-    : undefined
-
-  const updateJsonStorage = (newDrawJson: string) => {
-    if (updatePermission?.hasPermission) {
-      setStorageValue(lzString.compressToBase64(newDrawJson))
+    if (name === searchValue) {
+      return record
+    } else if (name < searchValue) {
+      minIndex = currentIndex + 1
     } else {
-      //TODO: Show error
+      maxIndex = currentIndex - 1
     }
   }
 
-  return {
-    image: images?.[0] || null,
-    color: color && {
-      hex: colorUtils.getHexForColor(color),
-      shouldUseLightText: colorUtils.shouldUseLightTextOnColor(color),
-    },
-    jsonValue,
-    updateJsonStorage,
-    updatePermission,
-  } as const
+  return null
+}
+
+export const useAnnotation = (attachment: Attachment | null | undefined) => {
+  const base = useBase()
+  const { annotationsTableId, storageFieldId } = useSettings()
+  const annotationTable = base.getTableByIdIfExists(annotationsTableId || '')
+
+  const queryResultImageIds = annotationTable?.selectRecords({
+    fields: [annotationTable.primaryField],
+    sorts: [{ field: annotationTable.primaryField, direction: 'asc' }],
+  })
+
+  useLoadable(queryResultImageIds || null)
+  useWatchable(queryResultImageIds, ['records'])
+
+  const annotationRecordId = useMemo(() => {
+    if (queryResultImageIds && attachment?.id) {
+      const record = binarySearchRecords(queryResultImageIds, attachment?.id)
+      return record?.id
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachment?.id, queryResultImageIds, queryResultImageIds?.recordIds])
+
+  const annotationRecord = useRecordById(
+    annotationTable!,
+    annotationRecordId || ''
+  )
+
+  return useMemo(() => {
+    const storageField = annotationTable?.getFieldByIdIfExists(
+      storageFieldId || ''
+    )
+
+    if (attachment && storageField) {
+      return new Annotation(
+        annotationRecord,
+        attachment,
+        annotationTable,
+        storageField
+      )
+    } else {
+      return null
+    }
+  }, [annotationTable, annotationRecord, attachment, storageFieldId])
 }

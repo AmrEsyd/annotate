@@ -7,7 +7,7 @@ import { colors, colorUtils } from '@airtable/blocks/ui'
 import is from '@sindresorhus/is/dist'
 
 import { CanvasTool } from '../tools'
-import { updateActiveObjectsStyles } from '../utils'
+import { updateActiveObjectsStyles as updateActiveLayersStyles } from '../utils'
 
 const filteredStyles = [
   'stroke',
@@ -18,13 +18,13 @@ const filteredStyles = [
   'fontWeight',
   'fontStyle',
   'underline',
-  'overline',
-  'linethrough',
   'textBackgroundColor',
 ]
 
+export const DEFAULT_COLOR = colors.RED_BRIGHT
+
 export const defaultStyle: IObjectOptions = {
-  stroke: colorUtils.getHexForColor(colors.BLUE_BRIGHT)!,
+  stroke: colorUtils.getHexForColor(DEFAULT_COLOR)!,
   strokeWidth: 8,
   fill: 'transparent',
 }
@@ -34,6 +34,7 @@ export const useStyle = (
   canvas: fabric.Canvas | null
 ) => {
   const [activeStyle, _setActiveStyle] = useState<IObjectOptions>(defaultStyle)
+  const [activeLayer, setActiveLayer] = useState<fabric.Object | null>(null)
   const defaultStyles = useRef<IObjectOptions | null>(defaultStyle)
 
   const updateActiveStyle = useCallback(
@@ -54,41 +55,47 @@ export const useStyle = (
     (newStyleValue: fabric.IObjectOptions) => {
       let newFilteredStyle = updateActiveStyle(newStyleValue)
       if (is.nonEmptyObject(newFilteredStyle)) {
-        updateActiveObjectsStyles(canvas, newFilteredStyle)
+        updateActiveLayersStyles(canvas, newFilteredStyle)
       }
     },
     [updateActiveStyle, canvas]
   )
 
-  const getObjectStyles = useCallback(
+  const setSelectedLayerStyle = useCallback(
     (event?: fabric.IEvent) => {
-      const selectedObject = event?.selected?.[0]
+      const selectedLayer = event?.selected?.[0]
       if (
         event?.selected?.length === 1 &&
-        selectedObject instanceof fabric.Object &&
-        !(selectedObject instanceof fabric.Group)
+        selectedLayer instanceof fabric.Object &&
+        !(selectedLayer instanceof fabric.Group)
       ) {
-        const objectStyles: IObjectOptions = selectedObject.toObject()
+        setActiveLayer(selectedLayer)
 
-        const fill = is.nonEmptyString(objectStyles.fill)
-          ? objectStyles.fill
+        const layerStyles: IObjectOptions = selectedLayer.toObject()
+
+        const fill = is.nonEmptyString(layerStyles.fill)
+          ? layerStyles.fill
           : 'transparent'
 
         if (!defaultStyles.current) {
           defaultStyles.current = activeStyle
         }
-        updateActiveStyle(pick({ ...objectStyles, fill }, filteredStyles))
+        updateActiveStyle(pick({ ...layerStyles, fill }, filteredStyles))
       } else if (defaultStyles.current) {
+        setActiveLayer(null)
         updateActiveStyle(defaultStyles.current)
         defaultStyles.current = null
+      } else {
+        setActiveLayer(null)
       }
     },
     [activeStyle, updateActiveStyle]
   )
 
   return {
+    activeLayer,
     activeStyle,
     updateUserStyles,
-    setSelectedObjectStyle: getObjectStyles,
+    setSelectedLayer: setSelectedLayerStyle,
   }
 }

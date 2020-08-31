@@ -1,6 +1,8 @@
-import { TextButton } from '@airtable/blocks/ui'
+import { Box, TextButton } from '@airtable/blocks/ui'
 import { css } from '@emotion/core'
 import styled from '@emotion/styled'
+
+const TOOLBAR_HEIGHT = 44
 
 export const hideScrollbar = css`
   &::-webkit-scrollbar {
@@ -38,16 +40,7 @@ export const lightScrollbar = css`
   }
 `
 
-export const SideBarList = styled.div`
-  margin: 0;
-  padding-bottom: 0.5rem;
-  box-sizing: border-box;
-  overflow: auto;
-  height: 100%;
-  display: flex;
-`
-
-export const Divider = styled.div`
+export const Divider = styled(Box)`
   border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 `
 
@@ -60,35 +53,18 @@ export const EditorContainer = styled.div`
   flex-direction: column;
 `
 
-export const SidebarContainer = styled.div`
-  flex: none;
-  border-right: solid 2px rgba(77, 77, 77, 0.3);
-  order: -1;
-  width: 250px;
-  z-index: 5;
-  opacity: 1;
-  @media (max-width: 768px) {
-    position: absolute;
-    left: 0;
-  }
-`
-
-const TOOLBAR_HIGHT = 44
-
-export const SideBarScroll = styled.div`
-  ${lightScrollbar}
-  background-color: #fff;
-  box-sizing: border-box;
+export const CanvasContainer = styled.div`
   display: flex;
-  height: calc(100vh - ${TOOLBAR_HIGHT}px);
-  overflow: auto;
-  position: relative;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 `
 
 export const ToolbarContainer = styled.div`
   ${hideScrollbar}
   width: 100%;
-  height: ${TOOLBAR_HIGHT}px;
+  height: ${TOOLBAR_HEIGHT}px;
   display: flex;
   align-items: center;
   overflow: scroll;

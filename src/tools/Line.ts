@@ -35,7 +35,7 @@ export class Line extends CanvasTool {
     const pointer = this.canvas.getPointer(event.e)
     this.line?.set({ x2: pointer.x, y2: pointer.y })
     this.line?.setCoords()
-    this.canvas.renderAll()
+    this.canvas.requestRenderAll()
   }
 
   onMouseUp() {

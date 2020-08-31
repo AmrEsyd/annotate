@@ -10,7 +10,8 @@ import { Divider } from './Layout'
 
 export type shortcutsIds =
   | 'select'
-  | 'save'
+  | 'move'
+  | 'download'
   | 'newAnnotation'
   | 'deleteShape'
   | 'keyboardShortcuts'
@@ -21,7 +22,7 @@ export type shortcutsIds =
   | 'lookupRecord'
   | 'emojiPicker'
   | 'Circle'
-  | 'Pen'
+  | 'Pencil'
   | 'Rectangle'
   | 'Line'
   | 'Arrow'
@@ -41,8 +42,13 @@ type shortcutsListType = {
 }
 
 export const shortcutsList: shortcutsListType = {
-  select: { label: 'select', shortcuts: ['v'], group: 'Shapes & Tools' },
-  save: {
+  select: { label: 'Select', shortcuts: ['v'], group: 'Shapes & Tools' },
+  move: {
+    label: 'Move',
+    shortcuts: ['m'],
+    group: 'Shapes & Tools',
+  },
+  download: {
     label: 'Download as an image',
     shortcuts: ['command+s', 'control+s'],
     group: 'General',
@@ -117,8 +123,8 @@ export const shortcutsList: shortcutsListType = {
     shortcuts: ['shift+l'],
     group: 'Shapes & Tools',
   },
-  Pen: {
-    label: 'Pen',
+  Pencil: {
+    label: 'Pencil',
     shortcuts: ['p'],
     group: 'Shapes & Tools',
   },
@@ -142,7 +148,7 @@ export const shortcutsList: shortcutsListType = {
 export const toolsKeys = {
   e: 'Emoji',
   r: 'Rectangle',
-  p: 'Pen',
+  p: 'Pencil',
   l: 'Line',
   o: 'Circle',
   'shift+l': 'Arrow',

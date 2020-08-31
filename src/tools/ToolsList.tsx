@@ -7,10 +7,10 @@ import {
   FiSquare,
 } from 'react-icons/fi'
 
-import { Arrow, Circle, Line, Pen, Rectangle } from './'
+import { Arrow, Circle, Line, Pencil, Rectangle } from './index'
 
 export const shapesList = {
-  Pen: { label: 'Pen', class: Pen, icon: <FiEdit3 strokeWidth="3" /> },
+  Pencil: { label: 'Pencil', class: Pencil, icon: <FiEdit3 strokeWidth="3" /> },
   Circle: {
     label: 'Circle',
     class: Circle,

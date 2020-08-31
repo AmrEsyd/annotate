@@ -3,31 +3,35 @@ import React, { useState } from 'react'
 import { Box, Button, Tooltip } from '@airtable/blocks/ui'
 import styled from '@emotion/styled'
 
-import { Shortcut, shortcutsIds, shortcutsList } from '../'
-import { useHotkeys, useResize } from '../../hooks'
+import { useHotkeys, useResize } from '../hooks'
+import { Shortcut, shortcutsIds, shortcutsList } from './index'
 
-const ToolbarButtonStyled = styled(Button)`
+const IconButtonStyled = styled(Button)`
   height: 24px;
   padding: 0.25rem 0.5rem;
-  margin-right: 0.5rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
+  margin: 0.25rem 0;
+
+  &:focus {
+    box-shadow: unset !important;
+  }
 `
 
-export type ToolbarButtonProps = {
+export type IconButtonProps = {
   label: string
   labelMinWidth?: number
+  labelStyle?: React.CSSProperties
   hideLabel?: boolean
   isSelected?: boolean
   shortcutId?: shortcutsIds
 } & React.ComponentProps<typeof Button>
 
-export const ToolbarButton: React.FC<
-  ToolbarButtonProps & { children?: never }
-> = (props) => {
+export const IconButton: React.FC<IconButtonProps & { children?: never }> = (
+  props
+) => {
   const {
     hideLabel,
-    labelMinWidth = 780,
+    labelMinWidth = 1000,
+    labelStyle,
     label,
     isSelected,
     shortcutId,
@@ -50,7 +54,7 @@ export const ToolbarButton: React.FC<
 
   const shortcuts = shortcutId && shortcutsList[shortcutId].shortcuts
   useHotkeys(
-    shortcuts?.join(),
+    shortcuts,
     (e) => {
       e.preventDefault()
       if (onClick) {
@@ -85,15 +89,15 @@ export const ToolbarButton: React.FC<
       placementY={Tooltip.placements.BOTTOM}
       content={() => tooltipContent}
     >
-      <ToolbarButtonStyled
+      <IconButtonStyled
         aria-label={label}
         variant={variant}
         onClick={(e) => !disabled && onClick?.(e)}
         style={disabled ? { ...disabledStyle, ...style } : style}
         {...buttonProps}
       >
-        {shouldShowLabel && label}
-      </ToolbarButtonStyled>
+        {shouldShowLabel && <span style={labelStyle}> {label}</span>}
+      </IconButtonStyled>
     </Tooltip>
   )
 }

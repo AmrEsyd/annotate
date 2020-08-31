@@ -1,52 +1,41 @@
 import { fabric } from 'fabric-pure-browser'
-import { IObjectOptions } from 'fabric/fabric-impl'
-import React, { useState } from 'react'
-import { FiMousePointer, FiType } from 'react-icons/fi'
+import React, { useContext, useRef, useState } from 'react'
+import { FiMousePointer, FiMove, FiType } from 'react-icons/fi'
 
 import { PermissionCheckResult } from '@airtable/blocks/dist/types/src/types/mutations'
-import { Box, colors, colorUtils } from '@airtable/blocks/ui'
+import { Box, colorUtils } from '@airtable/blocks/ui'
 
+import { EditorContext } from '../Editor'
+import { DEFAULT_COLOR, useHotkeys } from '../hooks'
+import { Move, Select, shapesList } from '../tools'
+import { EmojiPicker } from './EmojiPicker'
 import {
+  IconButton,
   MenuOption,
   PopoverButton,
-  ToolbarButton,
+  PopoverButtonRef,
   ToolbarContainer,
   toolsKeys,
-} from '../'
-import { useHotkeys } from '../../hooks'
-import { CanvasTool, Select, shapesList } from '../../tools'
-import { StylingOptions } from '../stylingOptions'
-import { EmojiPicker } from './EmojiPicker'
+} from './index'
 
 type ToolbarProps = {
   ToolbarButtons?: React.ReactNode
-  canvasMenuOptions: MenuOption[]
-  canvas: fabric.Canvas | null
-  currentTool: CanvasTool | null
-  handleToolChange: (tool: CanvasTool | null) => void
-  styleValue: IObjectOptions | null
-  handleStyleValueChange: (tool: IObjectOptions) => void
+  ToolbarButtonsRight?: React.ReactNode
   updatePermission?: PermissionCheckResult | null
 }
 
 export const Toolbar: React.FC<ToolbarProps> = (props) => {
-  const {
-    canvas,
-    handleToolChange,
-    styleValue,
-    handleStyleValueChange,
-    updatePermission,
-    currentTool,
-    ToolbarButtons,
-    canvasMenuOptions,
-  } = props
+  const { updatePermission, ToolbarButtons, ToolbarButtonsRight } = props
 
+  const { canvas, activeTool, handleToolChange } = useContext(EditorContext)
+
+  const toolsListMenu = useRef<PopoverButtonRef>(null)
   const [selectedShape, setSelectedShape] = useState<
     typeof shapesList[keyof typeof shapesList]
   >(shapesList.Rectangle)
 
   useHotkeys(
-    Object.keys(toolsKeys).join(),
+    Object.keys(toolsKeys),
     (_k, event) => {
       const key = event.key as keyof typeof toolsKeys
       const tool = toolsKeys[key]
@@ -64,7 +53,7 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
         case 'Arrow':
         case 'Circle':
         case 'Line':
-        case 'Pen':
+        case 'Pencil':
         case 'Rectangle':
           return updateSelectedShape(tool)
       }
@@ -75,7 +64,7 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
   const createText = (text: string = 'Text') => {
     if (!canvas) return
     const textObject = new fabric.Textbox(text, {
-      fill: colorUtils.getHexForColor(colors.BLUE_BRIGHT)!,
+      fill: colorUtils.getHexForColor(DEFAULT_COLOR)!,
       fontSize: 64,
       fontFamily: "-apple-system,system-ui,BlinkMacSystemFont,'Segoe UI'",
     })
@@ -98,19 +87,19 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
         label: tool.label,
         icon: tool.icon,
         shortcutId: tool.label,
-        isSelected: currentTool instanceof tool.class,
+        isSelected: activeTool instanceof tool.class,
         onClick: selectTool,
       }
     }
   )
 
-  const isSelectingShape = currentTool instanceof selectedShape.class
+  const isSelectingShape = activeTool instanceof selectedShape.class
 
   return (
     <ToolbarContainer>
       {ToolbarButtons}
       {updatePermission && !updatePermission.hasPermission && (
-        <ToolbarButton
+        <IconButton
           hideLabel
           display="flex"
           flex="1"
@@ -122,12 +111,19 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
         />
       )}
       <Box flex="1" />
-      <ToolbarButton
+      <IconButton
         icon={<FiMousePointer strokeWidth="3" />}
         label="Select"
         shortcutId="select"
         onClick={() => canvas && handleToolChange(new Select(canvas))}
-        isSelected={currentTool instanceof Select}
+        isSelected={activeTool instanceof Select}
+      />
+      <IconButton
+        icon={<FiMove strokeWidth="3" />}
+        label="Move"
+        shortcutId="move"
+        onClick={() => canvas && handleToolChange(new Move(canvas))}
+        isSelected={activeTool instanceof Move}
       />
       <Box
         display="flex"
@@ -138,21 +134,27 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
           background: isSelectingShape ? 'hsl(0,0%,95%)' : undefined,
         }}
       >
-        <ToolbarButton
-          style={{ margin: 0, padding: '0.25rem 0.1rem' }}
+        <IconButton
+          style={{ margin: 0, padding: '0.25rem 0.4rem' }}
           icon={selectedShape?.icon}
           label={selectedShape?.label || ''}
           shortcutId={selectedShape.label}
-          onClick={() =>
-            canvas &&
-            selectedShape &&
-            handleToolChange(new selectedShape.class(canvas))
-          }
+          labelStyle={{ width: '5em', display: 'block' }}
+          onClick={() => {
+            if (activeTool?.name === selectedShape?.class.name) {
+              toolsListMenu.current?.togglePopover()
+            } else {
+              canvas &&
+                selectedShape &&
+                handleToolChange(new selectedShape.class(canvas))
+            }
+          }}
         />
         <PopoverButton
+          ref={toolsListMenu}
           hideLabel
           closeOnClick
-          style={{ margin: 0, padding: '0.25rem 0.1rem' }}
+          style={{ margin: 0, padding: '0.25rem 0.2rem' }}
           icon="caret"
           label="Select shape"
           styleType="white"
@@ -160,7 +162,7 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
           options={toolsOptions}
         />
       </Box>
-      <ToolbarButton
+      <IconButton
         icon={<FiType strokeWidth="3" />}
         label="Text"
         shortcutId="Text"
@@ -168,20 +170,7 @@ export const Toolbar: React.FC<ToolbarProps> = (props) => {
       />
       <EmojiPicker onSelect={createText} />
       <Box flex="1" />
-      <StylingOptions
-        styleValue={styleValue}
-        onChange={handleStyleValueChange}
-      />
-      <Box flex="1" />
-      <PopoverButton
-        closeOnClick
-        hideLabel
-        icon="overflow"
-        label="Menu"
-        styleType="dark"
-        eventType="click"
-        options={canvasMenuOptions}
-      />
+      {ToolbarButtonsRight}
     </ToolbarContainer>
   )
 }

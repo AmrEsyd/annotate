@@ -2,7 +2,7 @@ import hotkeys, { HotkeysEvent } from 'hotkeys-js'
 import { useCallback, useEffect } from 'react'
 
 export function useHotkeys(
-  keys?: string,
+  key?: string | string[],
   callback?: (
     keyboardEvent: KeyboardEvent,
     hotkeysEvent: HotkeysEvent
@@ -14,6 +14,8 @@ export function useHotkeys(
     callback ? callback : () => {},
     deps || []
   )
+
+  const keys = Array.isArray(key) ? key.join() : key
 
   useEffect(() => {
     if (keys) {

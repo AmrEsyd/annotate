@@ -1,4 +1,5 @@
 import { fabric } from 'fabric-pure-browser'
+import clamp from 'lodash/clamp'
 
 export const MAX_CANVAS_WIDTH = 1000
 
@@ -41,31 +42,56 @@ export const calculateMaxSize = (
   }
 }
 
-export const updateAndScaleImage = (
-  canvas: fabric.Canvas | null,
-  image: fabric.Image | null
+export const resetViewport = (
+  canvas: fabric.Canvas | fabric.StaticCanvas | null
 ) => {
-  if (!canvas) return
+  const viewportTransform = canvas?.viewportTransform
+  const original = canvas?.originalSize
+  if (canvas && viewportTransform && original) {
+    const zoom = canvas.getZoom()
 
-  const container = document.querySelector<HTMLElement>('#canvasContainer')
+    const currentWidthOffset = viewportTransform[4]
+    const currentHeightOffset = viewportTransform[5]
+    const maxWidthOffset = canvas.getWidth() - original.width * zoom
+    const maxHeightOffset = canvas.getHeight() - original.height * zoom
 
-  if (!container) return
+    const widthOffset = clamp(currentWidthOffset, maxWidthOffset, 0)
+    const heightOffset = clamp(currentHeightOffset, maxHeightOffset, 0)
 
-  updateAndScaleImageBySize(canvas, image, {
-    width: container.offsetWidth,
-    height: container.offsetHeight,
-  })
+    if (
+      widthOffset !== currentWidthOffset ||
+      heightOffset !== currentHeightOffset
+    ) {
+      canvas.setViewportTransform([
+        ...viewportTransform.slice(0, 4),
+        widthOffset,
+        heightOffset,
+      ])
+    }
+  }
 }
 
-export const updateAndScaleImageBySize = (
-  canvas: fabric.Canvas | fabric.StaticCanvas | null,
-  image: fabric.Image | null,
-  canvasContainerDimensions: {
-    width: number
-    height: number
-  }
-) => {
+type updateAndScaleImageValues = {
+  canvas: fabric.Canvas | fabric.StaticCanvas | null
+  image: fabric.Image | null
+  zoom?: number
+  zoomToPoint?: fabric.Point
+} & (
+  | { dimensions: { width: number; height: number } }
+  | { container: HTMLElement }
+)
+
+export const updateAndScaleImage = (args: updateAndScaleImageValues) => {
+  const { canvas, image, zoom, zoomToPoint } = args
   if (!canvas) return
+
+  const containerDimensions =
+    'container' in args
+      ? {
+          width: args.container.offsetWidth,
+          height: args.container.offsetHeight,
+        }
+      : args.dimensions
 
   let size = { width: 1000, height: 600 }
 
@@ -78,17 +104,27 @@ export const updateAndScaleImageBySize = (
     image.scaleToHeight(size.height)
   }
 
-  const scale = Math.min(
-    canvasContainerDimensions.width / size.width,
-    canvasContainerDimensions.height / size.height
-  )
+  const zoomValue = zoom || 1
+
+  const scale =
+    Math.min(
+      containerDimensions.width / size.width,
+      containerDimensions.height / size.height
+    ) * zoomValue
 
   canvas.setDimensions({
-    height: size.height * scale,
-    width: size.width * scale,
+    height: Math.min(size.height * scale, containerDimensions.height),
+    width: Math.min(size.width * scale, containerDimensions.width),
   })
 
-  canvas.setZoom(scale)
+  const canvasCenter = canvas.getCenter()
+  canvas.zoomToPoint(
+    zoomToPoint || new fabric.Point(canvasCenter.left, canvasCenter.top),
+    scale
+  )
+
+  canvas.originalSize = size
+  resetViewport(canvas)
 
   canvas.requestRenderAll()
 }

@@ -1,33 +1,18 @@
 import React, { useState } from 'react'
 
-import { base, globalConfig, session, undoRedo } from '@airtable/blocks'
-import { FieldType } from '@airtable/blocks/models'
-import {
-  Box,
-  Button,
-  Dialog,
-  Heading,
-  Text,
-  TextButton,
-  useSettingsButton,
-  ViewportConstraint,
-} from '@airtable/blocks/ui'
+import { Box, useSettingsButton } from '@airtable/blocks/ui'
 
-import { KeyboardShortcutsList, shortcutsList, snackbar } from './components'
+import { KeyboardShortcutsList, Setup, shortcutsList } from './components'
 import { Editor } from './Editor'
 import { useHotkeys, useSettings } from './hooks'
-import { globalConfigKeys, localStorageKeys, Settings } from './Settings'
-
-if (localStorage.getItem(localStorageKeys.undoRedo) === 'Yes') {
-  undoRedo.mode = undoRedo.modes.AUTO
-}
+import { Settings } from './Settings'
 
 type BlockContextType = {
-  showSettings?: () => unknown
-  showKeyboardShortcuts?: () => unknown
+  showSettings: () => unknown
+  showKeyboardShortcuts: () => unknown
 }
 
-export const BlockContext = React.createContext<BlockContextType>({})
+export const BlockContext = React.createContext<BlockContextType>(null as any)
 
 export function Main() {
   const [shouldRenderSettings, setShouldRenderSettings] = useState(false)
@@ -35,14 +20,14 @@ export function Main() {
     shouldRenderKeyboardShortcuts,
     setShouldRenderKeyboardShortcuts,
   ] = useState(false)
-  const { annotationsTableId, imageFieldId, storageFieldId } = useSettings()
+  const { annotationsTableId, storageFieldId } = useSettings()
 
   useSettingsButton(() => {
     setShouldRenderSettings(!shouldRenderSettings)
   })
 
   useHotkeys(
-    shortcutsList.keyboardShortcuts.shortcuts.join(),
+    shortcutsList.keyboardShortcuts.shortcuts,
     () => {
       setShouldRenderKeyboardShortcuts(true)
     },
@@ -50,60 +35,8 @@ export function Main() {
   )
 
   let render
-  if (!annotationsTableId || !imageFieldId || !storageFieldId) {
-    const STORAGE_FIELD_NAME = 'Storage'
-    const IMAGE_FIELD_NAME = 'Original Image'
-    const createTable = () =>
-      base
-        .unstable_createTableAsync('annotations', [
-          { name: 'Title', type: FieldType.SINGLE_LINE_TEXT },
-          { name: STORAGE_FIELD_NAME, type: FieldType.MULTILINE_TEXT },
-          { name: IMAGE_FIELD_NAME, type: FieldType.MULTIPLE_ATTACHMENTS },
-        ])
-        .then((table) => {
-          globalConfig.setPathsAsync([
-            {
-              path: [globalConfigKeys.annotationsTableId],
-              value: table.id,
-            },
-            {
-              path: [globalConfigKeys.storageFieldId],
-              value: table.getFieldByNameIfExists(STORAGE_FIELD_NAME)?.id,
-            },
-            {
-              path: [globalConfigKeys.imageFieldId],
-              value: table.getFieldByNameIfExists(IMAGE_FIELD_NAME)?.id,
-            },
-          ])
-        })
-        .catch((error: Error) => {
-          snackbar(error.message, 5)
-        })
-    const permissionsForCreateTable = base.unstable_checkPermissionsForCreateTable()
-    render = (
-      <ViewportConstraint maxFullscreenSize={{ width: 600, height: 400 }}>
-        <Dialog onClose={() => {}}>
-          <Heading size="small">Welcome, {session.currentUser?.name}</Heading>
-          This block require a separate table to store your annotations.
-          {permissionsForCreateTable.hasPermission ? (
-            <Button onClick={createTable} variant="primary" marginY={2}>
-              Create the required table
-            </Button>
-          ) : (
-            permissionsForCreateTable.reasonDisplayString
-          )}
-          <Text size="small">
-            {"If you've used it before you can select the table in "}
-            <TextButton
-              size="small"
-              onClick={() => setShouldRenderSettings(true)}
-            >
-              block setting
-            </TextButton>
-          </Text>
-        </Dialog>
-      </ViewportConstraint>
-    )
+  if (!annotationsTableId || !storageFieldId) {
+    render = <Setup />
   } else {
     render = <Editor />
   }

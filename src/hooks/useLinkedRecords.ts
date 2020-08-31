@@ -1,7 +1,7 @@
 import flatMap from 'lodash/flatMap'
 import { useMemo } from 'react'
 
-import { Record } from '@airtable/blocks/dist/types/src/models/models'
+import { Record } from '@airtable/blocks/models'
 import { useLoadable } from '@airtable/blocks/ui'
 
 import { recordLinksOptions } from '../types'
@@ -27,10 +27,17 @@ export const useLinkedRecords = (
     }).filter(isDefined)
   }, [records, tableId])
 
-  useLoadable(linkedRecordsQueryResults)
+  useLoadable(linkedRecordsQueryResults, { shouldSuspend: false })
 
   return useMemo(
-    () => flatMap(linkedRecordsQueryResults, (result) => result.records),
-    [linkedRecordsQueryResults]
+    () =>
+      flatMap(linkedRecordsQueryResults, (result) =>
+        result.isDataLoaded ? result.records : []
+      ),
+    [
+      linkedRecordsQueryResults,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      linkedRecordsQueryResults.every((result) => result.isDataLoaded),
+    ]
   )
 }

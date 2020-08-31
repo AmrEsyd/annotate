@@ -1,17 +1,30 @@
-import { Canvas } from 'fabric/fabric-impl'
-import { throttle } from 'lodash'
-import React, { useEffect, useRef, useState } from 'react'
+import throttle from 'lodash/throttle'
+import truncate from 'lodash/truncate'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 
 import { CollaboratorData } from '@airtable/blocks/dist/types/src/types/collaborator'
-import { Box, CollaboratorToken, Text, useBase } from '@airtable/blocks/ui'
+import {
+  Box,
+  CollaboratorToken,
+  Icon,
+  Text,
+  useBase,
+} from '@airtable/blocks/ui'
 
-const TEXT_MAX_WIDTH = 120
+import { EditorContext } from '../Editor'
+import { getTimeFromNow, truncateCollaborator } from '../utils'
 
-export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
-  canvas,
-}) => {
+/** Max tooltip width */
+const TOOLTIP_WIDTH = 150
+/** Max shape name letters length */
+const SHAPE_NAME_LENGTH = 48
+/** Max collaborator name letters length */
+const COLLABORATOR_LENGTH = 12
+
+export const CanvasHover: React.FC = () => {
   const base = useBase()
   const boxRef = useRef<HTMLElement>(null)
+  const { canvas, canvasContainerRef } = useContext(EditorContext)
 
   const [cursorPosition, setCursorPosition] = useState<{
     x: number
@@ -20,7 +33,10 @@ export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
 
   const [objectInfo, setObjectInfo] = useState<{
     name?: string
+    createdBy?: CollaboratorData | null
     modifiedBy?: CollaboratorData | null
+    modifiedTime?: number | null
+    createdTime?: number | null
   } | null>(null)
 
   useEffect(() => {
@@ -28,14 +44,26 @@ export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
 
     const handleMouseOver = (event: fabric.IEvent) => {
       const object = event.target
-      if (object) {
+      if (object && object.type !== 'activeSelection') {
+        const modifiedByCollaborator = base.getCollaboratorByIdIfExists(
+          object?.modifiedBy!
+        )
+        const createdByCollaborator = base.getCollaboratorByIdIfExists(
+          object?.createdBy!
+        )
+
         setObjectInfo({
-          name: object.name,
-          modifiedBy: base.getCollaboratorByIdIfExists(
-            object?.modifiedBy || ''
-          ),
+          name: truncate(object.name, { length: SHAPE_NAME_LENGTH }),
+          modifiedTime: object.modifiedTime,
+          createdTime: object.createdTime,
+          createdBy:
+            createdByCollaborator &&
+            truncateCollaborator(createdByCollaborator, COLLABORATOR_LENGTH),
+          modifiedBy:
+            modifiedByCollaborator &&
+            truncateCollaborator(modifiedByCollaborator, COLLABORATOR_LENGTH),
         })
-      } else {
+      } else if (objectInfo) {
         setObjectInfo(null)
         setCursorPosition(null)
       }
@@ -44,20 +72,20 @@ export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
     const handleMouseMove = throttle((event: fabric.IEvent) => {
       const mouseEvent = event.e instanceof MouseEvent ? event.e : null
       const object = event.target
-      if (mouseEvent && object) {
-        const container = document
-          .querySelector('#canvasContainer')
-          ?.getBoundingClientRect()
+
+      if (mouseEvent && object && objectInfo) {
+        const container = canvasContainerRef.current?.getBoundingClientRect()
         const box = boxRef.current
-        const boxWidth = box?.clientWidth || 0
-        const boxHeight = box?.clientHeight || 0
+
+        const boxWidth = (box?.clientWidth || 0) + 10
+        const boxHeight = (box?.clientHeight || 0) + 10
 
         if (!container) return
 
         const shouldFlipX =
-          container.width - boxWidth - mouseEvent.clientX - 10 < 0
-
-        const shouldFlipY = container.height - mouseEvent.clientY - 15 < 0
+          container.left + container.width - boxWidth - mouseEvent.clientX < 0
+        const shouldFlipY =
+          container.top + container.height - boxHeight - mouseEvent.clientY < 0
 
         setCursorPosition({
           x: shouldFlipX
@@ -67,6 +95,8 @@ export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
             ? mouseEvent.clientY - boxHeight
             : mouseEvent.clientY + 10,
         })
+      } else {
+        handleMouseOver(event)
       }
     }, 50)
 
@@ -78,21 +108,29 @@ export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
     canvas.on({
       'mouse:over': handleMouseOver,
       'mouse:move': handleMouseMove,
+      'mouse:wheel': handleMouseMove,
       'mouse:out': handleMouseOut,
     })
 
     return () => {
       canvas?.off('mouse:over', handleMouseOver)
       canvas?.off('mouse:move', handleMouseMove)
+      canvas?.off('mouse:wheel', handleMouseMove)
       canvas?.off('mouse:out', handleMouseOut)
     }
-  }, [base, canvas])
+  }, [base, canvas, objectInfo, canvasContainerRef])
 
   if (!objectInfo) return <></>
+
+  const { name, modifiedBy, createdBy, modifiedTime, createdTime } = objectInfo
 
   return cursorPosition && objectInfo ? (
     <Box
       ref={boxRef}
+      backgroundColor="dark"
+      padding={1}
+      borderRadius={3}
+      maxWidth={TOOLTIP_WIDTH}
       position="absolute"
       zIndex={90}
       overflow="hidden"
@@ -101,28 +139,34 @@ export const CanvasHover: React.FC<{ canvas: Canvas | null }> = ({
         left: cursorPosition.x,
       }}
     >
-      {objectInfo.modifiedBy && (
-        <CollaboratorToken
-          style={{ pointerEvents: 'none' }}
-          key={objectInfo.modifiedBy.id}
-          collaborator={objectInfo.modifiedBy}
-          marginRight={1}
-        />
+      {name && (
+        <Box display="flex" alignItems="center">
+          <Icon name="text" fillColor="white" marginRight={1} />
+          <Text width="fit-content" textColor="white" marginBottom={1}>
+            {name}
+          </Text>
+        </Box>
       )}
-      {objectInfo.name && (
-        <Text
-          backgroundColor="dark"
-          width="fit-content"
-          padding={1}
-          borderRadius={2}
-          maxWidth={TEXT_MAX_WIDTH}
-          size="small"
-          textColor="white"
-          overflow="hidden"
-          style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-        >
-          {objectInfo.name}
-        </Text>
+      {modifiedTime && (
+        <Box display="flex" alignItems="center" marginTop={1}>
+          <Icon name="time" fillColor="white" marginRight={1} />
+          <Text size="small" textColor="white">
+            {modifiedTime !== createdTime ? 'Edited' : 'Created'}{' '}
+            {getTimeFromNow(modifiedTime)}
+          </Text>
+        </Box>
+      )}
+      {modifiedBy && modifiedBy.id !== createdBy?.id && (
+        <Box display="flex" alignItems="center" marginTop={1}>
+          <Icon name="personalAuto" fillColor="white" marginRight={1} />
+          <CollaboratorToken collaborator={modifiedBy} />
+        </Box>
+      )}
+      {createdBy && (
+        <Box display="flex" alignItems="center" marginTop={1}>
+          <Icon name="personal" fillColor="white" marginRight={1} />
+          <CollaboratorToken collaborator={createdBy} />
+        </Box>
       )}
     </Box>
   ) : (

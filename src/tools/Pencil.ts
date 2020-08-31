@@ -4,8 +4,8 @@ import is from '@sindresorhus/is'
 
 import { CanvasTool } from './tool'
 
-export class Pen extends CanvasTool {
-  name = 'Pen'
+export class Pencil extends CanvasTool {
+  name = 'Pencil'
 
   onMouseDown: undefined
   onMouseMove: undefined
