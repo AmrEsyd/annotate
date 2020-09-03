@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-import { Box, useSettingsButton } from '@airtable/blocks/ui'
+import { Box, useBase, useSettingsButton } from '@airtable/blocks/ui'
 
 import { KeyboardShortcutsList, Setup, shortcutsList } from './components'
 import { Editor } from './Editor'
@@ -15,12 +15,21 @@ type BlockContextType = {
 export const BlockContext = React.createContext<BlockContextType>(null as any)
 
 export function Main() {
+  const base = useBase()
   const [shouldRenderSettings, setShouldRenderSettings] = useState(false)
   const [
     shouldRenderKeyboardShortcuts,
     setShouldRenderKeyboardShortcuts,
   ] = useState(false)
   const { annotationsTableId, storageFieldId } = useSettings()
+
+  const annotationsTable = annotationsTableId
+    ? base.getTableByIdIfExists(annotationsTableId)
+    : null
+
+  const storageField = storageFieldId
+    ? annotationsTable?.getFieldByIdIfExists(storageFieldId)
+    : null
 
   useSettingsButton(() => {
     setShouldRenderSettings(!shouldRenderSettings)
@@ -35,7 +44,12 @@ export function Main() {
   )
 
   let render
-  if (!annotationsTableId || !storageFieldId) {
+  if (
+    !annotationsTable ||
+    annotationsTable.isDeleted ||
+    !storageField ||
+    storageField.isDeleted
+  ) {
     render = <Setup />
   } else {
     render = <Editor />

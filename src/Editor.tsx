@@ -169,7 +169,7 @@ export const Editor: React.FC = () => {
     if (permission && !permission.hasPermission) {
       confirmDialog({
         title: 'Your changes will NOT be saved to the base',
-        body: `${permission.reasonDisplayString}. You can download you edits from the menu.`,
+        body: permission.reasonDisplayString,
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

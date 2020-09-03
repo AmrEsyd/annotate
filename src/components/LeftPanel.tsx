@@ -1,15 +1,15 @@
-import { Annotation } from '../Annotation'
-import { Attachment } from '../hooks'
 import React, { useEffect, useState } from 'react'
 
 import { Box, Text } from '@airtable/blocks/ui'
 
+import { Annotation } from '../Annotation'
 import {
   AttachmentPanel,
   Divider,
   IconButton,
   LayersPanel,
 } from '../components'
+import { Attachment } from '../hooks'
 import { Panel, SidePanel } from './SidePanel'
 
 type LeftPanelProps = {
